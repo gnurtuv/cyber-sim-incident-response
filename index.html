@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSim: Incident Response - Ransomware Attack</title>
+    <style>
+        /* --- General & Desktop --- */
+        :root {
+            --background-color: #0d1117;
+            --desktop-bg: #161b22;
+            --window-bg: #010409;
+            --titlebar-bg: #161b22;
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --green-text: #3fb950;
+            --red-text: #f85149;
+            --yellow-text: #d29922;
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        #desktop {
+            width: 100%;
+            height: calc(100% - 40px);
+            background-color: var(--desktop-bg);
+            position: relative;
+            background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .desktop-icon {
+            position: absolute;
+            width: 80px;
+            text-align: center;
+            padding: 10px 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .desktop-icon:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .desktop-icon svg {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 5px;
+        }
+        .desktop-icon span {
+            display: block;
+            font-size: 12px;
+            color: white;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        #taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background-color: var(--titlebar-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            z-index: 10000;
+        }
+        #clock {
+            margin-left: auto;
+            font-size: 14px;
+        }
+
+
+        /* --- Window System --- */
+        .window {
+            position: absolute;
+            background-color: var(--window-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            min-width: 300px;
+            min-height: 200px;
+            display: none;
+            flex-direction: column;
+            resize: both;
+            overflow: hidden;
+        }
+
+        .window.active {
+            z-index: 9999;
+        }
+
+        .title-bar {
+            background-color: var(--titlebar-bg);
+            color: var(--text-color);
+            padding: 8px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .title-bar-buttons button {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        .title-bar-buttons button:hover {
+            color: var(--red-text);
+        }
+
+        .window-content {
+            padding: 10px;
+            flex-grow: 1;
+            overflow: auto;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* --- Terminal App --- */
+        #terminal-content {
+            background-color: #010409;
+            color: #e6edf3;
+            font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+            font-size: 14px;
+            padding: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .terminal-line {
+            display: flex;
+        }
+        .terminal-prompt {
+            color: var(--green-text);
+            margin-right: 8px;
+            white-space: nowrap;
+        }
+        .terminal-input {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0;
+        }
+        .terminal-input:focus {
+            outline: none;
+        }
+        .terminal-output {
+            color: var(--text-color);
+        }
+        .terminal-output .error {
+            color: var(--red-text);
+        }
+        .terminal-output .info {
+            color: var(--yellow-text);
+        }
+
+        /* --- Quest Tracker App --- */
+        #quest-tracker-content h3 {
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+            margin-top: 0;
+        }
+        #quest-tracker-content ul {
+            list-style: none;
+            padding: 0;
+        }
+        #quest-tracker-content li {
+            margin-bottom: 10px;
+        }
+        .quest-status {
+            color: var(--red-text);
+            font-weight: bold;
+        }
+        .quest-status.completed {
+            color: var(--green-text);
+        }
+
+        /* --- Email App --- */
+        #email-client-content {
+            display: flex;
+            height: 100%;
+            padding: 0;
+        }
+        #email-list {
+            width: 200px;
+            border-right: 1px solid var(--border-color);
+            padding: 10px;
+            overflow-y: auto;
+        }
+        #email-view {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .email-item {
+            padding: 8px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .email-item:hover {
+            background-color: var(--border-color);
+        }
+        .email-item.unread {
+            font-weight: bold;
+        }
+        .email-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .email-header span {
+            display: block;
+        }
+        .email-body {
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        /* --- Incident Report App --- */
+        #report-form-content .form-group {
+            margin-bottom: 15px;
+        }
+        #report-form-content label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--accent-color);
+        }
+        #report-form-content input, #report-form-content textarea {
+            width: 100%;
+            background-color: var(--desktop-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px;
+            border-radius: 4px;
+        }
+        #report-form-content button {
+            background-color: var(--green-text);
+            color: black;
+            font-weight: bold;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #report-status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="desktop">
+        <!-- Desktop Icons -->
+        <div class="desktop-icon" data-app="quest-tracker" style="top: 20px; left: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.44,14.33... (omitted for brevity)"></path></svg>
+            <span>Quest Tracker</span>
+        </div>
+        <div class="desktop-icon" data-app="terminal" style="top: 120px; left: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4,3H20A1,1,0,0,1,21,4V20A1,1,0,0,1,20,21H4A1,1,0,0,1,3,20V4A1,1,0,0,1,4,3M5,5V7H8.59L5.29,10.29L6.71,11.71L10,8.41V12H12V5H5Z"/></svg>
+            <span>Terminal</span>
+        </div>
+        <div class="desktop-icon" data-app="email-client" style="top: 220px; left: 20px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z"/></svg>
+            <span>Email Client</span>
+        </div>
+        <div class="desktop-icon" data-app="report-form" style="top: 320px; left: 20px;">
+             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20ZM8 12H16V14H8V12ZM8 16H16V18H8V16Z"/></svg>
+            <span>Incident Report</span>
+        </div>
+
+        <!-- App Windows -->
+        <div id="quest-tracker-window" class="window" style="top: 50px; left: 150px; width: 450px; height: 400px;">
+            <div class="title-bar"><span>Quest Tracker</span><div class="title-bar-buttons"><button class="close-btn">X</button></div></div>
+            <div class="window-content" id="quest-tracker-content">
+                <h3>Main Quests</h3>
+                <ul id="main-quests"></ul>
+                <h3>Side Quests</h3>
+                <ul id="side-quests"></ul>
+            </div>
+        </div>
+
+        <div id="terminal-window" class="window" style="top: 100px; left: 250px; width: 650px; height: 400px;">
+            <div class="title-bar"><span>/bin/bash</span><div class="title-bar-buttons"><button class="close-btn">X</button></div></div>
+            <div class="window-content" id="terminal-content" onclick="document.getElementById('terminal-input').focus()">
+                <div class="terminal-output">Welcome to the Firm's Incident Response Terminal.
+Type 'help' for a list of available commands.</div>
+                <div class="terminal-line">
+                    <span class="terminal-prompt">ir-analyst@hq:~$</span>
+                    <input type="text" id="terminal-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                </div>
+            </div>
+        </div>
+        
+        <div id="email-client-window" class="window" style="top: 150px; left: 350px; width: 700px; height: 500px;">
+            <div class="title-bar"><span>MailBox</span><div class="title-bar-buttons"><button class="close-btn">X</button></div></div>
+            <div class="window-content" id="email-client-content">
+                <div id="email-list"></div>
+                <div id="email-view">
+                    <p>Select an email to read it.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="report-form-window" class="window" style="top: 200px; left: 200px; width: 500px; height: 550px;">
+            <div class="title-bar"><span>Incident Report IR-2024-042</span><div class="title-bar-buttons"><button class="close-btn">X</button></div></div>
+            <div class="window-content" id="report-form-content">
+                <h3>CONFIDENTIAL: INCIDENT REPORT</h3>
+                <p>Fill out the form below based on your findings. Use precise keywords.</p>
+                <div class="form-group">
+                    <label for="report-vector">Initial Attack Vector:</label>
+                    <input type="text" id="report-vector" placeholder="e.g., phishing, malware, ddos...">
+                </div>
+                 <div class="form-group">
+                    <label for="report-hosts">Number of Infected Hosts Isolated:</label>
+                    <input type="text" id="report-hosts" placeholder="Enter a number">
+                </div>
+                <div class="form-group">
+                    <label for="report-cve">Vulnerability Exploited (if any):</label>
+                    <input type="text" id="report-cve" placeholder="e.g., CVE-2023-12345">
+                </div>
+                <div class="form-group">
+                    <label for="report-remediation">Remediation Summary:</label>
+                    <textarea id="report-remediation" rows="4" placeholder="Briefly describe steps taken to patch, restore, and recover."></textarea>
+                </div>
+                <button id="submit-report-btn">Submit Final Report</button>
+                <div id="report-status"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="taskbar">
+        <span style="font-weight: bold;">CyberSim</span>
+        <div id="clock"></div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- GAME STATE --- //
+        const gameState = {
+            quests: {
+                main: {
+                    triage: { text: "Triage & Containment: Isolate infected systems to prevent further spread.", completed: false, detail: "Use the terminal to find and isolate affected hosts." },
+                    analysis: { text: "Forensic Analysis: Identify the initial attack vector.", completed: false, detail: "Check logs and emails to find out how the attackers got in." },
+                    eradication: { text: "Eradication & Recovery: Remove malware, patch vulnerabilities, and restore systems.", completed: false, detail: "Apply the necessary patches and restore from backups using terminal commands." },
+                    communication: { text: "Communication: Draft an incident report for leadership.", completed: false, detail: "Open the Incident Report app and fill it out correctly." }
+                },
+                side: {
+                    ransom_note: { text: "Find and read the ransom note left by the attackers.", completed: false, detail: "The note should be on the file system." },
+                    patient_zero: { text: "Identify 'Patient Zero' - the first user to be compromised.", completed: false, detail: "SIEM logs might contain the user who first triggered the suspicious activity." }
+                }
+            },
+            infectedHosts: ['FIN-WKS-07', 'MKT-WKS-12', 'HR-WKS-02'],
+            isolatedHosts: [],
+            cve: 'CVE-2023-35078',
+            patientZero: 'bob.johnson@megacorp.finance',
+            vectorFound: false,
+            vulnerabilityPatched: false,
+            backupsRestored: false,
+        };
+
+        // --- VIRTUAL FILE SYSTEM --- //
+        const fileSystem = {
+            '/': {
+                type: 'dir',
+                children: ['home', 'var', 'RANSOM_NOTE.LOCKED']
+            },
+            '/home': {
+                type: 'dir',
+                children: ['ir-analyst']
+            },
+            '/home/ir-analyst': {
+                type: 'dir',
+                children: ['documents', 'hint.txt']
+            },
+            '/home/ir-analyst/documents': {
+                type: 'dir',
+                children: []
+            },
+            '/home/ir-analyst/hint.txt': {
+                type: 'file',
+                content: `Welcome, Analyst.
+Remember the basics:
+1. Don't panic.
+2. Check your tools. The SIEM is your best friend. Use 'siem_query' to search logs.
+3. The attack seems to have spread fast. Check for common entry points like email or our external-facing services (like the VPN).
+4. Our standard procedure is to isolate, analyze, patch, then restore.`
+            },
+            '/var': {
+                type: 'dir',
+                children: ['log']
+            },
+            '/var/log': {
+                type: 'dir',
+                children: ['vpn.log', 'system.log']
+            },
+            '/var/log/vpn.log': {
+                type: 'file',
+                content: `...
+[2024-05-17 08:50:11] INFO: User alice.smith@megacorp.finance connected from IP 74.125.224.72
+[2024-05-17 08:55:23] INFO: User charlie.davis@megacorp.finance connected from IP 216.58.194.174
+[2024-05-17 09:01:45] CRITICAL: Unauthenticated access from IP 198.51.100.55 exploiting CVE-2023-35078. Session established.
+[2024-05-17 09:02:10] ALERT: High-volume data transfer initiated from session originating at 198.51.100.55.
+...`
+            },
+            '/var/log/system.log': {
+                type: 'file',
+                content: `...
+[2024-05-17 09:05:30] ERROR: Cannot access C:\\Users\\...\\*.docx. File encrypted with .LOCKED extension. Host: FIN-WKS-07
+[2024-05-17 09:05:32] ERROR: Cannot access C:\\Users\\...\\*.xlsx. File encrypted with .LOCKED extension. Host: MKT-WKS-12
+[2024-05-17 09:05:35] ERROR: Cannot access C:\\Users\\...\\*.pptx. File encrypted with .LOCKED extension. Host: HR-WKS-02
+...`
+            },
+            '/RANSOM_NOTE.LOCKED': {
+                type: 'file',
+                content: `--- ALL YOUR FILES ARE ENCRYPTED ---
+Your network has been compromised. Your important files have been encrypted with military-grade algorithms.
+There is no way to restore your data without our help.
+
+To get your files back, you must pay 500,000 USD in Bitcoin (BTC).
+Send 8.0 BTC to the following address: bc1qxyz... (address redacted for security)
+
+You have 72 hours to pay. After that, the price doubles. After one week, your decryption key will be permanently deleted.
+Do not try to recover the files yourself. You will only damage them.
+
+Contact us at darkhatz@proton.me for payment confirmation.
+Your unique ID is: 8A5E-3C7B-9F2D-1G4H`
+            }
+        };
+
+        // --- EMAIL DATA --- //
+        const emails = [
+            { id: 1, from: 'IT Helpdesk', subject: 'Scheduled Maintenance', body: 'Dear employees,\nPlease be advised of scheduled network maintenance this weekend. No action is required.', read: false },
+            { id: 2, from: 'Alice Smith', subject: 'URGENT: I can\'t open my files!', body: 'Help! All my files have a weird ".LOCKED" extension and I can\'t open them. My computer name is FIN-WKS-07. A scary message popped up asking for Bitcoin!', read: false },
+            { id: 3, from: 'Charlie Davis', subject: 'System Locked!', body: 'My workstation is completely locked. It says my files are encrypted. What\'s going on? Hostname: MKT-WKS-12.', read: false },
+            { id: 4, from: 'IT Support <it.support@megacorp.finance.co>', subject: 'CRITICAL: Security Policy Update - Action Required', body: `ATTENTION:
+Due to a recent security audit, all employees must immediately update their security credentials.
+
+Please click the link below to verify your identity and prevent account suspension:
+http://megacorp-finance-auth.com/update
+
+Failure to comply within 24 hours will result in loss of access.
+
+-IT Support`, read: false, isPhishing: true },
+            { id: 5, from: 'HR Department', subject: 'Re: Q2 Performance Reviews', body: 'Hi Team, please remember to submit your Q2 performance self-evaluations by EOD Friday. Thanks!', read: false },
+        ];
+
+
+        // --- UI & WINDOW MANAGEMENT --- //
+        const windows = document.querySelectorAll('.window');
+        const desktopIcons = document.querySelectorAll('.desktop-icon');
+        let activeWindow = null;
+        let maxZIndex = 100;
+
+        function makeWindowActive(win) {
+            if (activeWindow) {
+                activeWindow.classList.remove('active');
+            }
+            activeWindow = win;
+            win.style.zIndex = ++maxZIndex;
+            win.classList.add('active');
+        }
+
+        windows.forEach(win => {
+            const titleBar = win.querySelector('.title-bar');
+            const closeBtn = win.querySelector('.close-btn');
+
+            win.addEventListener('mousedown', () => makeWindowActive(win));
+
+            // Dragging logic
+            titleBar.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('close-btn')) return;
+
+                makeWindowActive(win);
+                let offsetX = e.clientX - win.offsetLeft;
+                let offsetY = e.clientY - win.offsetTop;
+
+                function moveWindow(e) {
+                    win.style.left = (e.clientX - offsetX) + 'px';
+                    win.style.top = (e.clientY - offsetY) + 'px';
+                }
+
+                function stopMove() {
+                    document.removeEventListener('mousemove', moveWindow);
+                    document.removeEventListener('mouseup', stopMove);
+                }
+
+                document.addEventListener('mousemove', moveWindow);
+                document.addEventListener('mouseup', stopMove);
+            });
+
+            // Close button
+            closeBtn.addEventListener('click', () => {
+                win.style.display = 'none';
+            });
+        });
+
+        desktopIcons.forEach(icon => {
+            icon.addEventListener('dblclick', () => {
+                const appId = icon.getAttribute('data-app');
+                const win = document.getElementById(`${appId}-window`);
+                if (win) {
+                    win.style.display = 'flex';
+                    makeWindowActive(win);
+                }
+            });
+        });
+
+
+        // --- QUEST TRACKER --- //
+        const mainQuestsList = document.getElementById('main-quests');
+        const sideQuestsList = document.getElementById('side-quests');
+
+        function updateQuestTracker() {
+            mainQuestsList.innerHTML = '';
+            for (const key in gameState.quests.main) {
+                const quest = gameState.quests.main[key];
+                const statusClass = quest.completed ? 'completed' : '';
+                const statusText = quest.completed ? 'COMPLETED' : 'PENDING';
+                mainQuestsList.innerHTML += `<li><span class="quest-status ${statusClass}">${statusText}</span> - ${quest.text}</li>`;
+            }
+
+            sideQuestsList.innerHTML = '';
+            for (const key in gameState.quests.side) {
+                const quest = gameState.quests.side[key];
+                const statusClass = quest.completed ? 'completed' : '';
+                const statusText = quest.completed ? 'COMPLETED' : 'PENDING';
+                sideQuestsList.innerHTML += `<li><span class="quest-status ${statusClass}">${statusText}</span> - ${quest.text}</li>`;
+            }
+             // Check for game completion
+            const allMainCompleted = Object.values(gameState.quests.main).every(q => q.completed);
+            if (allMainCompleted) {
+                 setTimeout(() => alert("CONGRATULATIONS!\nYou have successfully responded to the ransomware incident. You've contained the threat, analyzed the breach, restored systems, and informed leadership. Your quick and effective work has saved the company!"), 500);
+            }
+        }
+
+
+        // --- TERMINAL LOGIC --- //
+        const terminalInput = document.getElementById('terminal-input');
+        const terminalOutput = document.querySelector('.terminal-output');
+        const terminalContent = document.getElementById('terminal-content');
+        let currentDir = '/home/ir-analyst';
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        terminalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const commandLine = terminalInput.value;
+                const prompt = `<div class="terminal-line"><span class="terminal-prompt">ir-analyst@hq:${currentDir}$</span><span>${commandLine}</span></div>`;
+                terminalOutput.innerHTML += prompt;
+
+                if (commandLine.trim() !== '') {
+                    commandHistory.unshift(commandLine);
+                }
+                historyIndex = -1;
+
+                processCommand(commandLine);
+                terminalInput.value = '';
+                terminalContent.scrollTop = terminalContent.scrollHeight;
+            } else if (e.key === 'ArrowUp') {
+                if (commandHistory.length > 0 && historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    terminalInput.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    terminalInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = -1;
+                    terminalInput.value = '';
+                }
+            }
+        });
+
+        function printToTerminal(text, className = '') {
+            const outputLine = document.createElement('div');
+            outputLine.innerHTML = text.replace(/\n/g, '<br>');
+            if (className) {
+                outputLine.classList.add(className);
+            }
+            terminalOutput.appendChild(outputLine);
+        }
+
+        function resolvePath(path) {
+            if (path.startsWith('/')) {
+                return path;
+            }
+            const parts = (currentDir + '/' + path).split('/').filter(p => p !== '' && p !== '.');
+            const resolved = [];
+            for (const part of parts) {
+                if (part === '..') {
+                    resolved.pop();
+                } else {
+                    resolved.push(part);
+                }
+            }
+            return '/' + resolved.join('/');
+        }
+        
+        function getNode(path) {
+            const parts = path.split('/').filter(Boolean);
+            let currentNode = fileSystem['/'];
+            let currentPath = '/';
+
+            for (const part of parts) {
+                const nextPath = (currentPath === '/' ? '' : currentPath) + '/' + part;
+                if (fileSystem[nextPath] && fileSystem[nextPath].type === 'dir') {
+                    currentNode = fileSystem[nextPath];
+                    currentPath = nextPath;
+                } else if (fileSystem[nextPath] && fileSystem[nextPath].type === 'file') {
+                    return fileSystem[nextPath];
+                }
+                 else {
+                    return null;
+                }
+            }
+             return currentNode;
+        }
+
+        function processCommand(commandLine) {
+            const [command, ...args] = commandLine.trim().split(/\s+/);
+
+            switch (command) {
+                case 'help':
+                    printToTerminal(`Available commands:
+  <span class="info">help</span>              - Shows this help message.
+  <span class="info">ls [path]</span>         - Lists files and directories.
+  <span class="info">cd [path]</span>         - Changes the current directory.
+  <span class="info">cat [file]</span>        - Displays the content of a file.
+  <span class="info">clear</span>             - Clears the terminal screen.
+  
+Incident Response Commands:
+  <span class="info">siem_query [query]</span>- Query the SIEM. Examples:
+                           'siem_query --service=system --level=error'
+                           'siem_query --url=http://suspicious-site.com'
+  <span class="info">isolate_host [hostname]</span> - Isolates a host from the network.
+  <span class="info">run_patch [cve_id]</span>    - Applies a patch for a specific CVE.
+  <span class="info">restore_from_backup [hostname]</span> - Restores a host from the last known good backup.`);
+                    break;
+                case 'clear':
+                    terminalOutput.innerHTML = '';
+                    break;
+                case 'ls':
+                    const path = args[0] ? resolvePath(args[0]) : currentDir;
+                    const node = getNode(path);
+                    if (node && node.type === 'dir') {
+                        let content = '';
+                        // Find the file system entry for the directory itself to list its children
+                        const dirEntry = Object.entries(fileSystem).find(([p, _]) => p === path);
+                        if(dirEntry && dirEntry[1].children) {
+                            content = dirEntry[1].children.join('\n');
+                        }
+                        printToTerminal(content);
+                    } else {
+                        printToTerminal(`ls: cannot access '${args[0] || '.'}': No such file or directory`, 'error');
+                    }
+                    break;
+                case 'cd':
+                    if (!args[0]) {
+                        currentDir = '/home/ir-analyst';
+                        break;
+                    }
+                    const newPath = resolvePath(args[0]);
+                    const cdNode = getNode(newPath);
+                    if (cdNode && cdNode.type === 'dir') {
+                        currentDir = newPath;
+                    } else {
+                        printToTerminal(`cd: ${args[0]}: No such file or directory`, 'error');
+                    }
+                    break;
+                case 'cat':
+                    if (!args[0]) {
+                        printToTerminal('cat: missing file operand', 'error');
+                        break;
+                    }
+                    const filePath = resolvePath(args[0]);
+                    const fileNode = Object.entries(fileSystem).find(([p, v]) => p === filePath && v.type === 'file');
+
+                    if (fileNode) {
+                        printToTerminal(fileNode[1].content);
+                        if (filePath === '/RANSOM_NOTE.LOCKED') {
+                            gameState.quests.side.ransom_note.completed = true;
+                            updateQuestTracker();
+                        }
+                    } else {
+                        printToTerminal(`cat: ${args[0]}: No such file or directory`, 'error');
+                    }
+                    break;
+
+                // --- SCENARIO COMMANDS ---
+                case 'siem_query':
+                    const query = args.join(' ');
+                    if (query === '--service=system --level=error') {
+                        printToTerminal(`Querying SIEM... Found 3 high-priority alerts:
+[2024-05-17 09:05:30] ERROR: File encryption detected. Host: FIN-WKS-07
+[2024-05-17 09:05:32] ERROR: File encryption detected. Host: MKT-WKS-12
+[2024-05-17 09:05:35] ERROR: File encryption detected. Host: HR-WKS-02`);
+                    } else if (query === '--url=http://megacorp-finance-auth.com/update') {
+                         printToTerminal(`Querying SIEM for URL... Found 1 matching event:
+[2024-05-17 09:01:30] INFO: User bob.johnson@megacorp.finance clicked suspicious link http://megacorp-finance-auth.com/update from internal IP 10.1.1.84.
+This user's activity was followed by a critical alert.`);
+                         gameState.quests.side.patient_zero.completed = true;
+                         // Finding the vuln in logs is the other part of the analysis quest
+                         if (gameState.vectorFound) { 
+                             gameState.quests.main.analysis.completed = true;
+                         }
+                         updateQuestTracker();
+                    } else {
+                        printToTerminal(`siem_query: Invalid query. Try '--service=system --level=error' or query a specific artifact like '--url=<suspicious_url>'`, 'error');
+                    }
+                    break;
+                case 'isolate_host':
+                    const host = args[0];
+                    if (!host) {
+                        printToTerminal('isolate_host: missing hostname', 'error');
+                        break;
+                    }
+                    if (gameState.infectedHosts.includes(host)) {
+                        if (!gameState.isolatedHosts.includes(host)) {
+                            gameState.isolatedHosts.push(host);
+                            printToTerminal(`Successfully isolated ${host} from the network.`, 'green-text');
+                            if (gameState.isolatedHosts.length === gameState.infectedHosts.length) {
+                                gameState.quests.main.triage.completed = true;
+                                updateQuestTracker();
+                            }
+                        } else {
+                            printToTerminal(`${host} is already isolated.`, 'info');
+                        }
+                    } else {
+                        printToTerminal(`${host} is not a known infected host.`, 'error');
+                    }
+                    break;
+                case 'run_patch':
+                    const cve = args[0];
+                    if (cve === gameState.cve) {
+                        if (!gameState.quests.main.analysis.completed) {
+                            printToTerminal(`Analysis must be completed first. Find the vulnerability by checking logs.`, 'error');
+                            break;
+                        }
+                        gameState.vulnerabilityPatched = true;
+                        printToTerminal(`Patch for ${cve} has been successfully applied to all external-facing systems.`, 'green-text');
+                        checkEradicationComplete();
+                    } else {
+                        printToTerminal(`Invalid or unnecessary patch ID: ${cve}`, 'error');
+                    }
+                    break;
+                case 'restore_from_backup':
+                    const restoreHost = args[0];
+                    if (gameState.infectedHosts.includes(restoreHost)) {
+                        if (gameState.isolatedHosts.includes(restoreHost) && gameState.vulnerabilityPatched) {
+                            printToTerminal(`Restoring ${restoreHost} from last known good backup...
+...
+Restore complete. ${restoreHost} is now clean and operational.`, 'green-text');
+                            gameState.backupsRestored = true; // Simple flag for now
+                            checkEradicationComplete();
+                        } else {
+                            printToTerminal(`Error: Cannot restore. Host must be isolated and the primary vulnerability must be patched first.`, 'error');
+                        }
+                    } else {
+                        printToTerminal(`'${restoreHost}' is not a valid host to restore.`, 'error');
+                    }
+                    break;
+
+                default:
+                    if (command) {
+                        printToTerminal(`${command}: command not found`, 'error');
+                    }
+            }
+        }
+
+        // --- EMAIL CLIENT LOGIC --- //
+        const emailList = document.getElementById('email-list');
+        const emailView = document.getElementById('email-view');
+
+        function renderEmails() {
+            emailList.innerHTML = '';
+            emails.forEach(email => {
+                const item = document.createElement('div');
+                item.className = 'email-item';
+                if (!email.read) {
+                    item.classList.add('unread');
+                }
+                item.innerHTML = `<strong>${email.from}</strong><br>${email.subject}`;
+                item.addEventListener('click', () => showEmail(email.id));
+                emailList.appendChild(item);
+            });
+        }
+        function showEmail(id) {
+            const email = emails.find(e => e.id === id);
+            if(email) {
+                email.read = true;
+                emailView.innerHTML = `
+                    <div class="email-header">
+                        <span><strong>From:</strong> ${email.from}</span>
+                        <span><strong>Subject:</strong> ${email.subject}</span>
+                    </div>
+                    <div class="email-body">${email.body}</div>
+                `;
+                if(email.isPhishing) {
+                    // Finding the phishing email is a key part of the analysis
+                    gameState.vectorFound = true;
+                }
+                // Finding the vuln in logs is the other part
+                 if (gameState.vectorFound && gameState.quests.side.patient_zero.completed) { // A bit of a cheat, link finding patient zero to this.
+                    gameState.quests.main.analysis.completed = true;
+                    updateQuestTracker();
+                }
+                renderEmails();
+            }
+        }
+
+
+        // --- INCIDENT REPORT LOGIC --- //
+        const submitReportBtn = document.getElementById('submit-report-btn');
+        const reportStatus = document.getElementById('report-status');
+        
+        submitReportBtn.addEventListener('click', () => {
+            const vector = document.getElementById('report-vector').value.trim().toLowerCase();
+            const hosts = document.getElementById('report-hosts').value.trim();
+            const cve = document.getElementById('report-cve').value.trim().toUpperCase();
+            const remediation = document.getElementById('report-remediation').value.trim().length;
+
+            const isCorrect = 
+                (vector.includes('phishing') || vector.includes('vpn')) &&
+                hosts === String(gameState.infectedHosts.length) &&
+                cve === gameState.cve &&
+                remediation > 20;
+
+            if (isCorrect) {
+                 if (Object.values(gameState.quests.main).filter(q => !q.completed).length > 1) {
+                    reportStatus.textContent = 'Report seems accurate, but you must complete all other main quests before submitting.';
+                    reportStatus.style.color = 'var(--yellow-text)';
+                    return;
+                }
+                reportStatus.textContent = 'Report Submitted and Accepted. Well done, Analyst.';
+                reportStatus.style.color = 'var(--green-text)';
+                gameState.quests.main.communication.completed = true;
+                updateQuestTracker();
+            } else {
+                reportStatus.textContent = 'Report contains inaccuracies. Please review your findings and try again.';
+                reportStatus.style.color = 'var(--red-text)';
+            }
+        });
+
+
+        // --- GAME LOGIC HELPERS --- //
+        function checkEradicationComplete() {
+            if (gameState.vulnerabilityPatched && gameState.backupsRestored) {
+                gameState.quests.main.eradication.completed = true;
+                updateQuestTracker();
+            }
+        }
+        
+        // --- INITIALIZATION --- //
+        function init() {
+            // Clock
+            const clockEl = document.getElementById('clock');
+            function updateClock() {
+                clockEl.textContent = new Date().toLocaleTimeString();
+            }
+            setInterval(updateClock, 1000);
+            updateClock();
+            
+            // Render initial state
+            updateQuestTracker();
+            renderEmails();
+
+            // Auto-open quest tracker for guidance
+            document.querySelector('.desktop-icon[data-app="quest-tracker"]').dispatchEvent(new Event('dblclick'));
+            
+            // Welcome alert
+            setTimeout(() => {
+                alert(`INCIDENT ALERT\n\nMultiple systems are reporting ransomware encryption. Files have a '.LOCKED' extension. An initial ransom demand of $500,000 has been identified.\n\nYour objective: Respond to the incident.\n\nCheck the Quest Tracker app for your assignments.`);
+            }, 500);
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
